@@ -89,6 +89,12 @@ interface Translation {
   confirmCreditModalText: string;
   confirmCreditModalBtn: string;
   cancel: string;
+  catBurnout: string;
+  catAnxiety: string;
+  catCareer: string;
+  catRelationship: string;
+  catSomethingElse: string;
+  catSomethingElseDesc: string;
 }
 
 const T: Record<LangCode, Translation> = {
@@ -165,6 +171,12 @@ const T: Record<LangCode, Translation> = {
     confirmCreditModalText: "AI 플랜을 생성하시겠습니까? (크레딧 1개가 차감됩니다. 남은 횟수: {credits}회)",
     confirmCreditModalBtn: "생성하기",
     cancel: "취소",
+    catBurnout: "번아웃",
+    catAnxiety: "불안",
+    catCareer: "커리어",
+    catRelationship: "인간관계",
+    catSomethingElse: "기타 고민",
+    catSomethingElseDesc: "동기부여, 의미, 혹은 아직 잘 모르겠음",
   },
 
   en: {
@@ -240,6 +252,12 @@ const T: Record<LangCode, Translation> = {
     confirmCreditModalText: "Use 1 AI Credit? (1 credit will be deducted. Remaining: {credits})",
     confirmCreditModalBtn: "Proceed",
     cancel: "Cancel",
+    catBurnout: "Burnout",
+    catAnxiety: "Anxiety",
+    catCareer: "Career",
+    catRelationship: "Relationships",
+    catSomethingElse: "Something else",
+    catSomethingElseDesc: "Motivation, meaning, or I'm not sure yet",
   },
 
   es: {
@@ -315,6 +333,12 @@ const T: Record<LangCode, Translation> = {
     confirmCreditModalText: "¿Usar 1 crédito de IA? (Se deducirá 1 crédito. Restante: {credits})",
     confirmCreditModalBtn: "Continuar",
     cancel: "Cancelar",
+    catBurnout: "Agotamiento",
+    catAnxiety: "Ansiedad",
+    catCareer: "Carrera",
+    catRelationship: "Relaciones",
+    catSomethingElse: "Otra cosa",
+    catSomethingElseDesc: "Motivación, significado, o aún no estoy seguro",
   },
 
   ja: {
@@ -390,6 +414,12 @@ const T: Record<LangCode, Translation> = {
     confirmCreditModalText: "AIクレジットを1つ使用しますか？ (1クレジット差し引かれます。残り: {credits})",
     confirmCreditModalBtn: "続行",
     cancel: "キャンセル",
+    catBurnout: "燃え尽き症候群",
+    catAnxiety: "不安",
+    catCareer: "キャリア",
+    catRelationship: "人間関係",
+    catSomethingElse: "その他",
+    catSomethingElseDesc: "モチベーション、意味、またはまだ分からない",
   },
 };
 

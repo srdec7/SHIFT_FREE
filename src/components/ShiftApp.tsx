@@ -43,13 +43,7 @@ function loadSaved(): Partial<SavedData> {
     
     let parsed = JSON.parse(raw) as Partial<SavedData>;
     
-    // Force English if they somehow still have Korean stuck from legacy v1
-    if (parsed.lang === "ko" && !localStorage.getItem("shift-v2-migrated")) {
-      parsed.lang = "en";
-      localStorage.setItem("shift-v2-migrated", "true");
-      // Resave immediately
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    } else if (!parsed.lang) {
+    if (!parsed.lang) {
       parsed.lang = "en";
     }
 
@@ -153,28 +147,31 @@ export default function ShiftApp() {
       "END:VALARM",
       "END:VEVENT",
       "END:VCALENDAR"
-    ].join('\\r\\n');
+    ].join('\r\n');
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isIOS || isSafari) {
-      const file = new File([icsContent], 'shift-reminder.ics', { type: 'text/calendar' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'SHIFT Reminder' }).catch(() => {
-          window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-        });
+      const tryDownload = () => {
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `shift-30day-${experiment.experimentTitle.replace(/[^a-zA-Z0-9]/g, "_")}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      if ((isIOS || isSafari) && navigator.canShare) {
+        const file = new File([icsContent], 'shift-reminder.ics', { type: 'text/calendar' });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: 'SHIFT Reminder' }).catch(tryDownload);
+        } else {
+          tryDownload();
+        }
       } else {
-        window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+        tryDownload();
       }
-    } else {
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = 'shift-reminder.ics';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
   };
 
   useEffect(() => {
@@ -192,6 +189,7 @@ export default function ShiftApp() {
 
   const audioSrc = getAudioSrc(screen);
   const prevAudioSrc = useRef(audioSrc);
+  const userMuted = useRef(false);
   const cloudSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // ── Handle BGM Track Changes ──
@@ -201,43 +199,48 @@ export default function ShiftApp() {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.load();
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => setIsPlaying(true)).catch((e) => {
-            console.warn("Audio playback failed on track change", e);
-          });
+        
+        if (!userMuted.current) {
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => setIsPlaying(true)).catch((e) => {
+              console.warn("Audio playback failed on track change", e);
+            });
+          }
+        } else {
+          setIsPlaying(false);
         }
       }
     }
   }, [audioSrc]);
 
-  // ── Attempt Autoplay on First Interaction ──
+  // ── Page Visibility: pause BGM when app goes to background ──
   useEffect(() => {
-    const handleFirstInteraction = () => {
-      if (audioRef.current && audioRef.current.paused && !isPlaying) {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setAudioError(true));
-      }
-      document.removeEventListener("click", handleFirstInteraction);
-      document.removeEventListener("touchstart", handleFirstInteraction);
-    };
-    
-    const handleVisibility = () => {
-      if (document.hidden && audioRef.current) {
-        audioRef.current.pause();
-        setIsPlaying(false);
+    const handleVisibilityChange = () => {
+      if (!audioRef.current) return;
+      if (document.hidden) {
+        // App went to background / tab switched → always pause
+        if (!audioRef.current.paused) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+      } else {
+        // App came back to foreground → resume only if user hadn't manually muted
+        if (!userMuted.current) {
+          audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => {
+              // Autoplay blocked — leave as paused
+            });
+        }
       }
     };
 
-    document.addEventListener("click", handleFirstInteraction);
-    document.addEventListener("touchstart", handleFirstInteraction);
-    document.addEventListener("visibilitychange", handleVisibility);
-    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      document.removeEventListener("click", handleFirstInteraction);
-      document.removeEventListener("touchstart", handleFirstInteraction);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isPlaying]);
+  }, []);
 
   // ── Register service worker for PWA ──
   useEffect(() => {
@@ -247,6 +250,7 @@ export default function ShiftApp() {
       });
     }
   }, []);
+
 
   // ── Load from localStorage on mount ──
   useEffect(() => {
@@ -274,14 +278,21 @@ export default function ShiftApp() {
 
   // ── Sync experiment language when lang changes ──
   useEffect(() => {
-    if (!loaded || !experiment || !experiment.id) return;
+    if (!loaded || !experiment) return;
     
-    // Check if the current experiment is a default plan
-    const dict = defaultPlans[lang] || defaultPlans.en;
-    if (dict && dict[experiment.id]) {
-      const translatedPlan = dict[experiment.id];
-      setExperiment(translatedPlan);
-      setProblem(translatedPlan.experimentTitle);
+    if (experiment.id) {
+      // Default plan: look up by id in defaultPlans
+      const dict = defaultPlans[lang] || defaultPlans.en;
+      if (dict && dict[experiment.id]) {
+        const translatedPlan = dict[experiment.id];
+        setExperiment(translatedPlan);
+        setProblem(translatedPlan.experimentTitle);
+      }
+    } else if ((experiment as any)._category) {
+      // Hybrid/archetype plan: rebuild from archetypes with new lang
+      const rebuilt = buildHybridPlan((experiment as any)._category, lang);
+      rebuilt._category = (experiment as any)._category;
+      setExperiment(rebuilt);
     }
   }, [lang, loaded]);
 
@@ -306,9 +317,18 @@ export default function ShiftApp() {
     setShowAdModal(false);
     setAdSuccess(true);
     
+    // Detect category from problem text (same logic as buildHybridPlan)
+    const text = problem.toLowerCase();
+    let category = "general";
+    if (text.match(/work|job|career|boss|manager|office|company|promote|일|직장|회사|상사|이직|커리어|퇴사|승진|동료/)) category = "career";
+    else if (text.match(/anxi|panic|worry|stress|fear|nervous|불안|걱정|긴장|떨리|초조|무섭/)) category = "anxiety";
+    else if (text.match(/friend|partner|relation|love|date|lonely|단절|외롭|친구|애인|연애|부부|대화/)) category = "relationship";
+    else if (text.match(/tired|exhaust|sleep|burnout|unmotivat|lazy|lethargic|무기력|피곤|번아웃|쉬고|지쳐/)) category = "burnout";
+    
     // Generate the hybrid plan
     const generated = buildHybridPlan(problem, lang);
-    generated.experimentTitle = generated.experimentTitle + ` : ${problem.substring(0, 15)}...`; 
+    generated.experimentTitle = generated.experimentTitle + ` : ${problem.substring(0, 15)}...`;
+    generated._category = category; // Store for future lang re-syncing
     setExperiment(generated);
     go("experiment");
   };
@@ -397,12 +417,14 @@ export default function ShiftApp() {
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
+      userMuted.current = true;
     } else {
       // Browsers often require `load()` before `play()` if it was interrupted
       if (audioRef.current.readyState === 0) {
         audioRef.current.load();
       }
       
+      userMuted.current = false;
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise
@@ -427,6 +449,7 @@ export default function ShiftApp() {
 
       {/* ── BACKGROUND AUDIO ── */}
       <audio
+        id="bg-music"
         ref={audioRef}
         src={audioSrc}
         loop
@@ -478,12 +501,7 @@ export default function ShiftApp() {
             </svg>
             {T.back || "Back"}
           </button>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <img src="/symbol.png" alt="SHIFT" style={{ height: 26, width: "auto", opacity: 0.8 }} />
-            <img src="/logo.png" alt="SHIFT" style={{ height: 14, width: "auto", opacity: 0.65 }} />
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* ── TOP RIGHT CONTROLS (Lang) ── */}
@@ -540,14 +558,7 @@ export default function ShiftApp() {
               <button className="btn btn-gold" onClick={() => go("experiment")}>
                 {lang === "ko" ? "내 플랜 이어하기" : "Continue My Plan"}
               </button>
-              <button className="btn btn-outline" onClick={() => {
-                if (confirm(lang === "ko" ? "기존 플랜을 삭제하고 새로 시작하시겠습니까?" : "Delete current plan and start over?")) {
-                  clearSaved();
-                  setExperiment(null);
-                  setCompletedDays([]);
-                  go("onboard");
-                }
-              }}>
+              <button className="btn btn-outline" onClick={resetAll}>
                 {lang === "ko" ? "새로 시작" : "Start New"}
               </button>
             </div>
@@ -588,10 +599,10 @@ export default function ShiftApp() {
             {/* Category cards 2×2 + 1 */}
             {(() => {
               const categoryMap = [
-                { key: "burnout",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M12 2C8 6 5 9 5 13a7 7 0 0014 0c0-4-3-7-7-11z"/><path d="M12 20v-4M9.5 15l2.5-2 2.5 2"/></svg>, label: "Burnout", desc: T.prompts?.[4] || "Exhaustion, emptiness, loss of drive" },
-                { key: "anxiety",     icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>, label: "Anxiety", desc: T.prompts?.[5] || "Worry, overthinking, fear" },
-                { key: "career",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M3 17l4-4 4 4 4-6 4 2"/><path d="M3 21h18"/></svg>, label: "Career", desc: T.prompts?.[2] || "Direction, purpose, workplace" },
-                { key: "relationship", icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, label: "Relationships", desc: T.prompts?.[3] || "Connection, loneliness" },
+                { key: "burnout",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M12 2C8 6 5 9 5 13a7 7 0 0014 0c0-4-3-7-7-11z"/><path d="M12 20v-4M9.5 15l2.5-2 2.5 2"/></svg>, label: T.catBurnout || "Burnout", desc: T.prompts?.[4] || "Exhaustion, emptiness, loss of drive" },
+                { key: "anxiety",     icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>, label: T.catAnxiety || "Anxiety", desc: T.prompts?.[5] || "Worry, overthinking, fear" },
+                { key: "career",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M3 17l4-4 4 4 4-6 4 2"/><path d="M3 21h18"/></svg>, label: T.catCareer || "Career", desc: T.prompts?.[2] || "Direction, purpose, workplace" },
+                { key: "relationship", icon: <svg viewBox="0 0 24 24" fill="none" stroke="rgba(168,144,112,0.7)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, label: T.catRelationship || "Relationships", desc: T.prompts?.[3] || "Connection, loneliness" },
               ];
               return (
                 <>
@@ -641,8 +652,8 @@ export default function ShiftApp() {
                       <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
                     </svg>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.88)", marginBottom: 3 }}>Something else</div>
-                      <div style={{ fontSize: 11, fontWeight: 300, color: "rgba(255,255,255,0.36)" }}>Motivation, meaning, or I'm not sure yet</div>
+                      <div style={{ fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.88)", marginBottom: 3 }}>{T.catSomethingElse || "Something else"}</div>
+                      <div style={{ fontSize: 11, fontWeight: 300, color: "rgba(255,255,255,0.36)" }}>{T.catSomethingElseDesc || "Motivation, meaning, or I'm not sure yet"}</div>
                     </div>
                   </button>
                 </>
@@ -828,46 +839,53 @@ export default function ShiftApp() {
               </div>
             </div>
 
-            <div className="btn-row">
-              {completedDays.length > 0 && currentDay <= 30 ? (
-                <>
+              <div className="btn-row" style={{ flexWrap: "nowrap", width: "100%", gap: "8px" }}>
+                {completedDays.length > 0 && currentDay <= 30 ? (
+                  <>
+                    <button
+                      className="btn btn-gold"
+                      onClick={() => go("daily")}
+                      style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
+                    >
+                      {T.continueDay?.replace("{day}", String(currentDay)) || `Continue Day ${currentDay}`}
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => {
+                        if (confirm(T.confirmRestart || "Restart from Day 1? All progress will be lost.")) {
+                          setCurrentDay(1);
+                          setCompletedDays([]);
+                          setReflections({});
+                          go("daily");
+                        }
+                      }}
+                      style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
+                    >
+                      {T.restartSession || "Restart"}
+                    </button>
+                  </>
+                ) : (
                   <button
                     className="btn btn-gold"
-                    onClick={() => go("daily")}
-                  >
-                    {T.continueDay?.replace("{day}", String(currentDay)) || `Continue Day ${currentDay}`}
-                  </button>
-                  <button
-                    className="btn btn-outline"
                     onClick={() => {
-                      if (confirm(T.confirmRestart || "Restart from Day 1? All progress will be lost.")) {
-                        setCurrentDay(1);
-                        setCompletedDays([]);
-                        setReflections({});
-                        go("daily");
-                      }
+                      setCurrentDay(1);
+                      setCompletedDays([]);
+                      setReflections({});
+                      go("daily");
                     }}
+                    style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
                   >
-                    {T.restartSession || "Restart"}
+                    {T.startDay1}
                   </button>
-                </>
-              ) : (
-                <button
-                  className="btn btn-gold"
-                  onClick={() => {
-                    setCurrentDay(1);
-                    setCompletedDays([]);
-                    setReflections({});
-                    go("daily");
-                  }}
+                )}
+                <button 
+                  className="btn btn-outline" 
+                  onClick={resetAll}
+                  style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
                 >
-                  {T.startDay1}
+                  {T.reenter}
                 </button>
-              )}
-              <button className="btn btn-outline" onClick={resetAll}>
-                {T.reenter}
-              </button>
-            </div>
+              </div>
           </div>
         </div>
       )}

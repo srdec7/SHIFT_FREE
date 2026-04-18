@@ -47,8 +47,9 @@ body {
 }
 .mock-ad-container {
   width: 90%;
-  max-width: 600px;
-  height: 50vh;
+  max-width: 360px; /* Better for vertical video */
+  height: 75vh;
+  max-height: 640px;
   background: #000;
   border-radius: 12px;
   overflow: hidden;

@@ -77,6 +77,24 @@ export class AdManager {
   }
 
   /**
+   * Helper to find and pause background music audio element.
+   * Returns whether music was playing (to resume after ad).
+   */
+  private pauseBgMusic(): { bgMusic: HTMLAudioElement | null; wasPlaying: boolean } {
+    // Find audio by id="bg-music" (set in ShiftApp.tsx)
+    const bgMusic = document.getElementById('bg-music') as HTMLAudioElement | null;
+    let wasPlaying = false;
+    if (bgMusic && typeof bgMusic.pause === 'function') {
+      wasPlaying = !bgMusic.paused && bgMusic.volume > 0;
+      if (wasPlaying) {
+        bgMusic.pause();
+        console.log('[AdManager] BGM paused before ad.');
+      }
+    }
+    return { bgMusic, wasPlaying };
+  }
+
+  /**
    * Triggers a rewarded video ad.
    */
   public showRewardedVideo(): Promise<boolean> {
@@ -92,26 +110,36 @@ export class AdManager {
       if (this.publisherId && typeof window.adbreak === 'function') {
         const adScreen = document.getElementById('mock-ad-screen');
         if (adScreen) adScreen.style.display = 'flex'; // show a dim overlay while loading
+
+        // Pause BGM before showing real ad
+        const { bgMusic, wasPlaying } = this.pauseBgMusic();
         
         window.adbreak({
           type: 'reward',
           name: 'premium_saju_reading',
           beforeAd: () => {
-            // Pause any audio/timers here if we have them
-            console.log('[AdManager] Ad started');
+            console.log('[AdManager] Real ad started');
           },
           afterAd: () => {
-            // Resume logic
             if (adScreen) adScreen.style.display = 'none';
+            // Resume BGM after real ad ends
+            if (wasPlaying && bgMusic) {
+              bgMusic.play().catch(() => console.warn('[AdManager] BGM resume blocked after real ad'));
+            }
           },
           adDismissed: () => {
             console.log('[AdManager] User dismissed ad early.');
             if (adScreen) adScreen.style.display = 'none';
+            // Resume BGM even if dismissed
+            if (wasPlaying && bgMusic) {
+              bgMusic.play().catch(() => console.warn('[AdManager] BGM resume blocked after dismiss'));
+            }
             resolve(false);
           },
           adViewed: () => {
             console.log('[AdManager] User watched ad successfully. Reward granted!');
             if (adScreen) adScreen.style.display = 'none';
+            // BGM resume handled in afterAd
             resolve(true);
           }
         });
@@ -129,14 +157,9 @@ export class AdManager {
     const adScreen = document.getElementById('mock-ad-screen');
     const adPlayingText = document.getElementById('ui-ad-playing');
     const adIframe = document.getElementById('mock-ad-iframe') as HTMLIFrameElement;
-    const bgMusic = document.getElementById('bg-music') as HTMLAudioElement;
-    
-    // Check if music was actively playing
-    let wasMusicPlaying = false;
-    if (bgMusic && typeof bgMusic.pause === 'function') {
-      wasMusicPlaying = !bgMusic.paused && bgMusic.volume > 0;
-      if (wasMusicPlaying) bgMusic.pause();
-    }
+
+    // Use shared helper to pause BGM (finds audio by id="bg-music")
+    const { bgMusic, wasPlaying: wasMusicPlaying } = this.pauseBgMusic();
 
     if (!adScreen) {
       if (wasMusicPlaying && bgMusic) bgMusic.play().catch(() => {});
