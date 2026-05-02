@@ -102,6 +102,8 @@ interface Translation {
   calendarSuccess: string;
   calendarDenied: string;
   calendarError: string;
+  restartSessionDesc: string;
+  adCountdown: string;
 }
 
 const T: Record<LangCode, Translation> = {
@@ -191,6 +193,8 @@ const T: Record<LangCode, Translation> = {
     calendarSuccess: "30일 미션이 기기의 캘린더에 저장되었습니다!",
     calendarDenied: "캘린더 접근 권한이 거부되었습니다.",
     calendarError: "캘린더 저장 중 오류가 발생했습니다.",
+    restartSessionDesc: "첫 번째 날로 돌아갈까요?",
+    adCountdown: "파트너사 메시지 재생 중... {s}초",
   },
 
   en: {
@@ -279,6 +283,8 @@ const T: Record<LangCode, Translation> = {
     calendarSuccess: "30 days of missions have been natively added to your calendar!",
     calendarDenied: "Calendar access was denied.",
     calendarError: "Failed to save to calendar natively.",
+    restartSessionDesc: "Restart from Day 1?",
+    adCountdown: "Playing Partner Message... {s}s",
   },
 
   es: {
@@ -367,6 +373,8 @@ const T: Record<LangCode, Translation> = {
     calendarSuccess: "¡Tus misiones de 30 días se han agregado a tu calendario!",
     calendarDenied: "Se denegó el acceso al calendario.",
     calendarError: "Error al guardar en el calendario.",
+    restartSessionDesc: "¿Reiniciar desde el primer día?",
+    adCountdown: "Reproduciendo mensaje... {s}s",
   },
 
   ja: {
@@ -455,6 +463,8 @@ const T: Record<LangCode, Translation> = {
     calendarSuccess: "30日間のミッションがカレンダーに追加されました！",
     calendarDenied: "カレンダーへのアクセスが拒否されました。",
     calendarError: "カレンダーの保存中にエラーが発生しました。",
+    restartSessionDesc: "最初の日からやり直しますか？",
+    adCountdown: "パートナーメッセージを再生中... {s}秒",
   },
 };
 

@@ -589,7 +589,7 @@ export default function ShiftApp() {
                {resetType === "hard" ? T.resetDataTitle : T.restartSession}
              </div>
              <div className="display" style={{ fontSize: 24, margin: "16px 0" }}>
-               {resetType === "hard" ? T.resetDataDesc : (lang === "ko" ? "Day 1로 돌아갈까요?" : "Restart from Day 1?")}
+               {resetType === "hard" ? T.resetDataDesc : T.restartSessionDesc}
              </div>
              <p style={{ color: "#aaa", fontSize: 13, marginBottom: 28 }}>
                {resetType === "hard" ? T.resetDataWarning : T.confirmRestart}

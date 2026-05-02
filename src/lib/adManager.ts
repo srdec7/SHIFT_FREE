@@ -11,9 +11,11 @@ declare global {
   }
 }
 
+import { t, LangCode } from "./translations";
+
 export async function showAdUI(lang: string, onSuccess: () => void, onCancel: () => void) {
   const adManager = AdManager.getInstance();
-  const success = await adManager.showRewardedVideo();
+  const success = await adManager.showRewardedVideo(lang as LangCode);
   if (success) {
     onSuccess();
   } else {
@@ -97,13 +99,13 @@ export class AdManager {
   /**
    * Triggers a rewarded video ad.
    */
-  public showRewardedVideo(): Promise<boolean> {
+  public showRewardedVideo(lang: LangCode): Promise<boolean> {
     return new Promise((resolve) => {
       const isAdBreakAvailable = this.publisherId && typeof window.adbreak === 'function';
 
       if (!this.isAdReady || !isAdBreakAvailable) {
         console.warn('[AdManager] Ad SDK not ready or adbreak missing (Pending Review/AdBlocker). Falling back to Mock.');
-        this.runMockVideoAd(resolve);
+        this.runMockVideoAd(lang, resolve);
         return;
       }
 
@@ -148,12 +150,12 @@ export class AdManager {
         if (this.publisherId) {
            console.warn('[AdManager] AdBreak function missing. AdBlocker active? Falling back to Mock.');
         }
-        this.runMockVideoAd(resolve);
+        this.runMockVideoAd(lang, resolve);
       }
     });
   }
 
-  private runMockVideoAd(onComplete: (success: boolean) => void) {
+  private runMockVideoAd(lang: LangCode, onComplete: (success: boolean) => void) {
     const adScreen = document.getElementById('mock-ad-screen');
     const adPlayingText = document.getElementById('ui-ad-playing');
     const adIframe = document.getElementById('mock-ad-iframe') as HTMLIFrameElement;
@@ -176,11 +178,17 @@ export class AdManager {
     }
 
     let countdown = 21;
-    if (adPlayingText) adPlayingText.textContent = `Playing Partner Message... ${countdown}s`;
+    const updateText = () => {
+      if (adPlayingText) {
+        adPlayingText.textContent = t(lang).adCountdown.replace("{s}", String(countdown));
+      }
+    };
+    
+    updateText();
 
     const interval = setInterval(() => {
       countdown -= 1;
-      if (adPlayingText) adPlayingText.textContent = `Playing Partner Message... ${countdown}s`;
+      updateText();
       
       if (countdown <= 0) {
         clearInterval(interval);
