@@ -561,17 +561,17 @@ export default function ShiftApp() {
            zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24
          }}>
            <div className="card" style={{ maxWidth: 400, width: "100%", position: "relative", textAlign: "center" }}>
-             <div className="eyebrow">{lang === "ko" ? "블루프린트 완성" : "Blueprint Ready"}</div>
+             <div className="eyebrow">{T.blueprintReady}</div>
              <div className="display" style={{ fontSize: 24, margin: "16px 0" }}>
-               {lang === "ko" ? "나만의 30일이 준비되었습니다." : "Your 30 days are ready."}
+               {T.adModalDesc}
              </div>
              <p style={{ color: "#aaa", fontSize: 13, marginBottom: 24 }}>
-               {lang === "ko" ? "짧은 스폰서 영상을 시청하고 플랜을 영구 소장하세요." : "Watch a short sponsor message to unlock your plan permanently."}
+               {T.adModalWarning}
              </p>
              <button className="btn btn-gold" onClick={() => {
                 showAdUI(lang, handleAdSuccess, () => setShowAdModal(false));
              }}>
-               {lang === "ko" ? "영상 재생" : "Play Video"}
+               {T.playVideo}
              </button>
            </div>
          </div>

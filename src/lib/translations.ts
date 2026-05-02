@@ -104,6 +104,10 @@ interface Translation {
   calendarError: string;
   restartSessionDesc: string;
   adCountdown: string;
+  blueprintReady: string;
+  adModalDesc: string;
+  adModalWarning: string;
+  playVideo: string;
 }
 
 const T: Record<LangCode, Translation> = {
@@ -195,6 +199,10 @@ const T: Record<LangCode, Translation> = {
     calendarError: "캘린더 저장 중 오류가 발생했습니다.",
     restartSessionDesc: "첫 번째 날로 돌아갈까요?",
     adCountdown: "파트너사 메시지 재생 중... {s}초",
+    blueprintReady: "블루프린트 완성",
+    adModalDesc: "나만의 30일이 준비되었습니다.",
+    adModalWarning: "짧은 스폰서 영상을 시청하고 플랜을 영구 소장하세요.",
+    playVideo: "영상 재생",
   },
 
   en: {
@@ -285,6 +293,10 @@ const T: Record<LangCode, Translation> = {
     calendarError: "Failed to save to calendar natively.",
     restartSessionDesc: "Restart from Day 1?",
     adCountdown: "Playing Partner Message... {s}s",
+    blueprintReady: "Blueprint Ready",
+    adModalDesc: "Your 30 days are ready.",
+    adModalWarning: "Watch a short sponsor message to unlock your plan permanently.",
+    playVideo: "Play Video",
   },
 
   es: {
@@ -375,6 +387,10 @@ const T: Record<LangCode, Translation> = {
     calendarError: "Error al guardar en el calendario.",
     restartSessionDesc: "¿Reiniciar desde el primer día?",
     adCountdown: "Reproduciendo mensaje... {s}s",
+    blueprintReady: "Plan Listo",
+    adModalDesc: "Tus 30 días están listos.",
+    adModalWarning: "Mira un breve mensaje de nuestro patrocinador para desbloquear tu plan permanentemente.",
+    playVideo: "Reproducir Video",
   },
 
   ja: {
@@ -465,6 +481,10 @@ const T: Record<LangCode, Translation> = {
     calendarError: "カレンダーの保存中にエラーが発生しました。",
     restartSessionDesc: "最初の日からやり直しますか？",
     adCountdown: "パートナーメッセージを再生中... {s}秒",
+    blueprintReady: "ブループリント完成",
+    adModalDesc: "あなただけの30日間が準備できました。",
+    adModalWarning: "短いスポンサー動画を視聴して、プランを永久にアンロックしてください。",
+    playVideo: "動画を再生",
   },
 };
 
