@@ -104,10 +104,9 @@ export default function ShiftApp() {
   const reportRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // ── Ad Flow State ──
   const [showAdModal, setShowAdModal] = useState(false);
   const [adSuccess, setAdSuccess] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetType, setResetType] = useState<"hard" | "soft" | null>(null);
   
   // ── Session Checking ──
   const [finalFeedback, setFinalFeedback] = useState("");
@@ -566,30 +565,39 @@ export default function ShiftApp() {
          </div>
       )}
 
-      {/* ── RESET CONFIRM MODAL ── */}
-      {showResetConfirm && (
+      {/* ── UNIFIED RESET CONFIRM MODAL ── */}
+      {resetType && (
          <div style={{
            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
            background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)",
            zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24
          }}>
            <div className="card" style={{ maxWidth: 360, width: "100%", position: "relative", textAlign: "center" }}>
-             <div className="eyebrow">{T.resetDataTitle}</div>
+             <div className="eyebrow">
+               {resetType === "hard" ? T.resetDataTitle : T.restartSession}
+             </div>
              <div className="display" style={{ fontSize: 24, margin: "16px 0" }}>
-               {T.resetDataDesc}
+               {resetType === "hard" ? T.resetDataDesc : (lang === "ko" ? "Day 1로 돌아갈까요?" : "Restart from Day 1?")}
              </div>
              <p style={{ color: "#aaa", fontSize: 13, marginBottom: 28 }}>
-               {T.resetDataWarning}
+               {resetType === "hard" ? T.resetDataWarning : T.confirmRestart}
              </p>
              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-               <button className="btn btn-outline" onClick={() => setShowResetConfirm(false)}>
+               <button className="btn btn-outline" onClick={() => setResetType(null)}>
                  {T.cancel}
                </button>
                <button className="btn btn-gold" onClick={() => {
-                 setShowResetConfirm(false);
-                 resetAll();
+                 if (resetType === "hard") {
+                   resetAll();
+                 } else {
+                   setCurrentDay(1);
+                   setCompletedDays([]);
+                   setReflections({});
+                   go("daily");
+                 }
+                 setResetType(null);
                }}>
-                 {T.yesReset}
+                 {resetType === "hard" ? T.yesReset : T.restartSession}
                </button>
              </div>
            </div>
@@ -620,7 +628,7 @@ export default function ShiftApp() {
               <button className="btn btn-gold" onClick={() => go("experiment")}>
                 {T.continueDay.replace("{day}", String(currentDay))}
               </button>
-              <button className="btn btn-outline" onClick={() => setShowResetConfirm(true)}>
+              <button className="btn btn-outline" onClick={() => setResetType("hard")}>
                 {T.reenter}
               </button>
             </div>
@@ -913,14 +921,7 @@ export default function ShiftApp() {
                     </button>
                     <button
                       className="btn btn-outline"
-                      onClick={() => {
-                        if (confirm(T.confirmRestart || "Restart from Day 1? All progress will be lost.")) {
-                          setCurrentDay(1);
-                          setCompletedDays([]);
-                          setReflections({});
-                          go("daily");
-                        }
-                      }}
+                      onClick={() => setResetType("soft")}
                       style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
                     >
                       {T.restartSession || "Restart"}
@@ -942,7 +943,7 @@ export default function ShiftApp() {
                 )}
                 <button 
                   className="btn btn-outline" 
-                  onClick={resetAll}
+                  onClick={() => setResetType("hard")}
                   style={{ flex: 1, padding: "15px 8px", justifyContent: "center", fontSize: "clamp(10px, 3vw, 12px)", minWidth: 0 }}
                 >
                   {T.reenter}
