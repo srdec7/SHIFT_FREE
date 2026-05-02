@@ -47,5 +47,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>We need calendar access to schedule your 30-day SHIFT missions.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>We need write access to add your daily SHIFT missions to your calendar.</string>
 </dict>
 </plist>

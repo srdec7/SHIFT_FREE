@@ -7,7 +7,8 @@ import { defaultPlans } from "@/data/defaultPlans";
 import { buildHybridPlan } from "@/data/archetypes";
 import { showAdUI } from "@/lib/adManager";
 import { v4 as uuidv4 } from "uuid";
-
+import { Capacitor } from "@capacitor/core";
+import { Calendar } from "@ebarooni/capacitor-calendar";
 interface Mission {
   week: number;
   theme: string;
@@ -106,20 +107,51 @@ export default function ShiftApp() {
   // ── Ad Flow State ──
   const [showAdModal, setShowAdModal] = useState(false);
   const [adSuccess, setAdSuccess] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   // ── Session Checking ──
   const [finalFeedback, setFinalFeedback] = useState("");
   const [generatingFeedback, setGeneratingFeedback] = useState(false);
   const [reminderTime, setReminderTime] = useState("08:00");
 
-  const downloadCalendarEvent = () => {
+  const downloadCalendarEvent = async () => {
     if (!experiment) return;
     
-    // Create ICS for 30 daily occurrences
-    const today = new Date();
-    // parse reminderTime "08:00" -> hours=8, mins=0
     const [hh, mm] = reminderTime.split(':').map(Number);
-    
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      try {
+        const permission = await Calendar.requestWriteOnlyCalendarAccess();
+        if (permission.result === "granted") {
+          for (let i = 0; i < 30; i++) {
+            const eventDate = new Date();
+            eventDate.setDate(eventDate.getDate() + i);
+            eventDate.setHours(hh, mm, 0, 0);
+            
+            const endDate = new Date(eventDate);
+            endDate.setMinutes(endDate.getMinutes() + 15);
+
+            await Calendar.createEvent({
+              title: `SHIFT: ${experiment.experimentTitle}`,
+              startDate: eventDate.toISOString(),
+              endDate: endDate.toISOString(),
+              notes: `Time for your daily micro-behavior mission in the SHIFT app!\nhttps://shift.choroksagua.com`,
+            });
+          }
+          alert(lang === "ko" ? "30일 미션이 기기의 캘린더에 저장되었습니다!" : "30 days of missions have been natively added to your calendar!");
+        } else {
+           alert(lang === "ko" ? "캘린더 접근 권한이 거부되었습니다." : "Calendar access was denied.");
+        }
+      } catch (e) {
+        console.error("Calendar error:", e);
+        alert(lang === "ko" ? "캘린더 저장 중 오류가 발생했습니다." : "Failed to save to calendar natively.");
+      }
+      return;
+    }
+
+    // Web Fallback: Create ICS for 30 daily occurrences
+    const today = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const year = today.getFullYear();
     const month = pad(today.getMonth() + 1);
@@ -139,7 +171,7 @@ export default function ShiftApp() {
       `DTSTART;TZID=${Intl.DateTimeFormat().resolvedOptions().timeZone}:${dtStart}`,
       "RRULE:FREQ=DAILY;COUNT=30",
       `SUMMARY:SHIFT: ${experiment.experimentTitle}`,
-      `DESCRIPTION:Time for your daily micro-behavior mission in the SHIFT app!\\nhttps://shift-app-alpha.vercel.app`,
+      `DESCRIPTION:Time for your daily micro-behavior mission in the SHIFT app!\\nhttps://shift.choroksagua.com`,
       "BEGIN:VALARM",
       "TRIGGER:-PT0M",
       "ACTION:DISPLAY",
@@ -149,29 +181,29 @@ export default function ShiftApp() {
       "END:VCALENDAR"
     ].join('\r\n');
 
-      const tryDownload = () => {
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = `shift-30day-${experiment.experimentTitle.replace(/[^a-zA-Z0-9]/g, "_")}.ics`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
+    const tryDownload = () => {
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `shift-30day-${experiment.experimentTitle.replace(/[^a-zA-Z0-9]/g, "_")}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
 
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      
-      if ((isIOS || isSafari) && navigator.canShare) {
-        const file = new File([icsContent], 'shift-reminder.ics', { type: 'text/calendar' });
-        if (navigator.canShare({ files: [file] })) {
-          navigator.share({ files: [file], title: 'SHIFT Reminder' }).catch(tryDownload);
-        } else {
-          tryDownload();
-        }
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    if ((isIOS || isSafari) && navigator.canShare) {
+      const file = new File([icsContent], 'shift-reminder.ics', { type: 'text/calendar' });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'SHIFT Reminder' }).catch(tryDownload);
       } else {
         tryDownload();
       }
+    } else {
+      tryDownload();
+    }
   };
 
   useEffect(() => {
@@ -472,7 +504,7 @@ export default function ShiftApp() {
       </button>
 
       {/* ── TOP LEFT: SHIFT Logo (shown on all screens) ── */}
-      <div style={{ position: "fixed", top: 16, left: 16, zIndex: 100, display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ position: "fixed", top: "calc(env(safe-area-inset-top) + 16px)", left: 16, zIndex: 100, display: "flex", alignItems: "center", gap: 10 }}>
         {screen !== "landing" && screen !== "done" && screen !== "loading" ? (
           <button
             onClick={() => {
@@ -505,7 +537,7 @@ export default function ShiftApp() {
       </div>
 
       {/* ── TOP RIGHT CONTROLS (Lang) ── */}
-      <div className="top-right-controls" style={{ position: "fixed", top: 16, right: 16, zIndex: 100, display: "flex", gap: "8px", alignItems: "center" }}>
+      <div className="top-right-controls" style={{ position: "fixed", top: "calc(env(safe-area-inset-top) + 16px)", right: 16, zIndex: 100, display: "flex", gap: "8px", alignItems: "center" }}>
         <LanguageSelector current={lang} onChange={setLang} />
         {audioError && <div style={{ fontSize: 10, color: "#c06060", marginRight: 8 }}>Audio blocked</div>}
       </div>
@@ -534,6 +566,36 @@ export default function ShiftApp() {
          </div>
       )}
 
+      {/* ── RESET CONFIRM MODAL ── */}
+      {showResetConfirm && (
+         <div style={{
+           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+           background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)",
+           zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24
+         }}>
+           <div className="card" style={{ maxWidth: 360, width: "100%", position: "relative", textAlign: "center" }}>
+             <div className="eyebrow">{lang === "ko" ? "데이터 초기화" : "Reset Data"}</div>
+             <div className="display" style={{ fontSize: 24, margin: "16px 0" }}>
+               {lang === "ko" ? "처음부터 다시 시작할까요?" : "Are you sure?"}
+             </div>
+             <p style={{ color: "#aaa", fontSize: 13, marginBottom: 28 }}>
+               {lang === "ko" ? "기존의 30일 진행 상황과 일기 기록이 모두 삭제되며 복구할 수 없습니다." : "Your 30-day progress and journal entries will be permanently deleted."}
+             </p>
+             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+               <button className="btn btn-outline" onClick={() => setShowResetConfirm(false)}>
+                 {lang === "ko" ? "취소" : "Cancel"}
+               </button>
+               <button className="btn btn-gold" onClick={() => {
+                 setShowResetConfirm(false);
+                 resetAll();
+               }}>
+                 {lang === "ko" ? "네, 지우겠습니다" : "Yes, Start Over"}
+               </button>
+             </div>
+           </div>
+         </div>
+      )}
+
       {/* ── LANDING ── */}
       {screen === "landing" && (
         <div className="screen">
@@ -558,7 +620,7 @@ export default function ShiftApp() {
               <button className="btn btn-gold" onClick={() => go("experiment")}>
                 {lang === "ko" ? "내 플랜 이어하기" : "Continue My Plan"}
               </button>
-              <button className="btn btn-outline" onClick={resetAll}>
+              <button className="btn btn-outline" onClick={() => setShowResetConfirm(true)}>
                 {lang === "ko" ? "새로 시작" : "Start New"}
               </button>
             </div>
