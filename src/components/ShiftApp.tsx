@@ -502,6 +502,18 @@ export default function ShiftApp() {
         </div>
       </button>
 
+      {/* ── TOP FIXED GLASS HEADER ── */}
+      <div style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        height: "calc(env(safe-area-inset-top) + 64px)",
+        background: "rgba(8,8,8,0.85)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        zIndex: 90,
+        borderBottom: "1px solid rgba(255,255,255,0.05)"
+      }} />
+
       {/* ── TOP LEFT: SHIFT Logo (shown on all screens) ── */}
       <div style={{ position: "fixed", top: "calc(env(safe-area-inset-top) + 16px)", left: 16, zIndex: 100, display: "flex", alignItems: "center", gap: 10 }}>
         {screen !== "landing" && screen !== "done" && screen !== "loading" ? (
