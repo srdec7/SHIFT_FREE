@@ -8,7 +8,7 @@ import { buildHybridPlan } from "@/data/archetypes";
 import { showAdUI } from "@/lib/adManager";
 import { v4 as uuidv4 } from "uuid";
 import { Capacitor } from "@capacitor/core";
-import { Calendar } from "@ebarooni/capacitor-calendar";
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 interface Mission {
   week: number;
   theme: string;
@@ -122,7 +122,7 @@ export default function ShiftApp() {
 
     if (isNative) {
       try {
-        const permission = await Calendar.requestWriteOnlyCalendarAccess();
+        const permission = await CapacitorCalendar.requestWriteOnlyCalendarAccess();
         if (permission.result === "granted") {
           for (let i = 0; i < 30; i++) {
             const eventDate = new Date();
@@ -132,7 +132,7 @@ export default function ShiftApp() {
             const endDate = new Date(eventDate);
             endDate.setMinutes(endDate.getMinutes() + 15);
 
-            await Calendar.createEvent({
+            await CapacitorCalendar.createEvent({
               title: `SHIFT: ${experiment.experimentTitle}`,
               startDate: eventDate.toISOString(),
               endDate: endDate.toISOString(),
