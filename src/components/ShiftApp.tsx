@@ -134,9 +134,9 @@ export default function ShiftApp() {
 
             await CapacitorCalendar.createEvent({
               title: `SHIFT: ${experiment.experimentTitle}`,
-              startDate: eventDate.toISOString(),
-              endDate: endDate.toISOString(),
-              notes: `Time for your daily micro-behavior mission in the SHIFT app!\nhttps://shift.choroksagua.com`,
+              startDate: eventDate.getTime(),
+              endDate: endDate.getTime(),
+              description: `Time for your daily micro-behavior mission in the SHIFT app!\nhttps://shift.choroksagua.com`,
             });
           }
           alert(T.calendarSuccess);
