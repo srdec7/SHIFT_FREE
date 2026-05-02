@@ -139,13 +139,13 @@ export default function ShiftApp() {
               notes: `Time for your daily micro-behavior mission in the SHIFT app!\nhttps://shift.choroksagua.com`,
             });
           }
-          alert(lang === "ko" ? "30일 미션이 기기의 캘린더에 저장되었습니다!" : "30 days of missions have been natively added to your calendar!");
+          alert(T.calendarSuccess);
         } else {
-           alert(lang === "ko" ? "캘린더 접근 권한이 거부되었습니다." : "Calendar access was denied.");
+           alert(T.calendarDenied);
         }
       } catch (e) {
         console.error("Calendar error:", e);
-        alert(lang === "ko" ? "캘린더 저장 중 오류가 발생했습니다." : "Failed to save to calendar natively.");
+        alert(T.calendarError);
       }
       return;
     }
@@ -574,22 +574,22 @@ export default function ShiftApp() {
            zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24
          }}>
            <div className="card" style={{ maxWidth: 360, width: "100%", position: "relative", textAlign: "center" }}>
-             <div className="eyebrow">{lang === "ko" ? "데이터 초기화" : "Reset Data"}</div>
+             <div className="eyebrow">{T.resetDataTitle}</div>
              <div className="display" style={{ fontSize: 24, margin: "16px 0" }}>
-               {lang === "ko" ? "처음부터 다시 시작할까요?" : "Are you sure?"}
+               {T.resetDataDesc}
              </div>
              <p style={{ color: "#aaa", fontSize: 13, marginBottom: 28 }}>
-               {lang === "ko" ? "기존의 30일 진행 상황과 일기 기록이 모두 삭제되며 복구할 수 없습니다." : "Your 30-day progress and journal entries will be permanently deleted."}
+               {T.resetDataWarning}
              </p>
              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                <button className="btn btn-outline" onClick={() => setShowResetConfirm(false)}>
-                 {lang === "ko" ? "취소" : "Cancel"}
+                 {T.cancel}
                </button>
                <button className="btn btn-gold" onClick={() => {
                  setShowResetConfirm(false);
                  resetAll();
                }}>
-                 {lang === "ko" ? "네, 지우겠습니다" : "Yes, Start Over"}
+                 {T.yesReset}
                </button>
              </div>
            </div>
@@ -618,10 +618,10 @@ export default function ShiftApp() {
           {experiment ? (
             <div className="btn-row" style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
               <button className="btn btn-gold" onClick={() => go("experiment")}>
-                {lang === "ko" ? "내 플랜 이어하기" : "Continue My Plan"}
+                {T.continueDay.replace("{day}", String(currentDay))}
               </button>
               <button className="btn btn-outline" onClick={() => setShowResetConfirm(true)}>
-                {lang === "ko" ? "새로 시작" : "Start New"}
+                {T.reenter}
               </button>
             </div>
           ) : (

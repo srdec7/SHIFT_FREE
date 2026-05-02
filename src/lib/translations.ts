@@ -95,6 +95,13 @@ interface Translation {
   catRelationship: string;
   catSomethingElse: string;
   catSomethingElseDesc: string;
+  resetDataTitle: string;
+  resetDataDesc: string;
+  resetDataWarning: string;
+  yesReset: string;
+  calendarSuccess: string;
+  calendarDenied: string;
+  calendarError: string;
 }
 
 const T: Record<LangCode, Translation> = {
@@ -177,6 +184,13 @@ const T: Record<LangCode, Translation> = {
     catRelationship: "인간관계",
     catSomethingElse: "기타 고민",
     catSomethingElseDesc: "동기부여, 의미, 혹은 아직 잘 모르겠음",
+    resetDataTitle: "데이터 초기화",
+    resetDataDesc: "처음부터 다시 시작할까요?",
+    resetDataWarning: "기존의 30일 진행 상황과 일기 기록이 모두 삭제되며 복구할 수 없습니다.",
+    yesReset: "네, 지우겠습니다",
+    calendarSuccess: "30일 미션이 기기의 캘린더에 저장되었습니다!",
+    calendarDenied: "캘린더 접근 권한이 거부되었습니다.",
+    calendarError: "캘린더 저장 중 오류가 발생했습니다.",
   },
 
   en: {
@@ -258,6 +272,13 @@ const T: Record<LangCode, Translation> = {
     catRelationship: "Relationships",
     catSomethingElse: "Something else",
     catSomethingElseDesc: "Motivation, meaning, or I'm not sure yet",
+    resetDataTitle: "Reset Data",
+    resetDataDesc: "Are you sure?",
+    resetDataWarning: "Your 30-day progress and journal entries will be permanently deleted.",
+    yesReset: "Yes, Start Over",
+    calendarSuccess: "30 days of missions have been natively added to your calendar!",
+    calendarDenied: "Calendar access was denied.",
+    calendarError: "Failed to save to calendar natively.",
   },
 
   es: {
@@ -339,6 +360,13 @@ const T: Record<LangCode, Translation> = {
     catRelationship: "Relaciones",
     catSomethingElse: "Otra cosa",
     catSomethingElseDesc: "Motivación, significado, o aún no estoy seguro",
+    resetDataTitle: "Restablecer datos",
+    resetDataDesc: "¿Estás seguro?",
+    resetDataWarning: "Tu progreso de 30 días y tus entradas del diario se eliminarán permanentemente.",
+    yesReset: "Sí, empezar de nuevo",
+    calendarSuccess: "¡Tus misiones de 30 días se han agregado a tu calendario!",
+    calendarDenied: "Se denegó el acceso al calendario.",
+    calendarError: "Error al guardar en el calendario.",
   },
 
   ja: {
@@ -420,6 +448,13 @@ const T: Record<LangCode, Translation> = {
     catRelationship: "人間関係",
     catSomethingElse: "その他",
     catSomethingElseDesc: "モチベーション、意味、またはまだ分からない",
+    resetDataTitle: "データのリセット",
+    resetDataDesc: "本当によろしいですか？",
+    resetDataWarning: "30日間の進捗と日記の記録は完全に削除され、復元できません。",
+    yesReset: "はい、最初からやり直す",
+    calendarSuccess: "30日間のミッションがカレンダーに追加されました！",
+    calendarDenied: "カレンダーへのアクセスが拒否されました。",
+    calendarError: "カレンダーの保存中にエラーが発生しました。",
   },
 };
 
